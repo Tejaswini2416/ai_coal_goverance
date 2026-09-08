@@ -39,6 +39,8 @@ async def test_alert_dispatch_tamper_event():
     assert "MINISTRY_AUDITOR" in res["target_roles"]
     assert "DGMS_INSPECTOR" in res["target_roles"]
     assert "COLLIERY_MANAGER" in res["target_roles"]
+    assert "+917842295449" in res["recipients"]
+    assert "+918919912916" in res["recipients"]
     assert len(res["recipients"]) >= 3
     assert res["sms_dispatch"]["status"] == "MOCKED_SUCCESS"
     assert "Ledger block #42 invalidated" in res["sms_dispatch"]["message_body"]

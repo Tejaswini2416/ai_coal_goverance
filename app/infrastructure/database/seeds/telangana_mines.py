@@ -264,8 +264,8 @@ async def seed_telangana_mines_data(force_reseed: bool = False) -> Dict[str, Any
     # 3. DEMO USERS (SCCL & REGULATORY AUTHORITIES)
     # ─────────────────────────────────────────────────────────────────────────
     demo_users = [
-        ("auditor.hq@coal.gov.in", "Dr. R. K. Sharma (MOC Auditor)", "MINISTRY_AUDITOR", ministry.id, "MOC", "+919876543210"),
-        ("inspector.dgms@dgms.gov.in", "Er. K. Venkat Rao (DGMS South Central Zone)", "DGMS_INSPECTOR", ministry.id, "MOC", "+919876543211"),
+        ("auditor.hq@coal.gov.in", "Dr. R. K. Sharma (MOC Auditor)", "MINISTRY_AUDITOR", ministry.id, "MOC", "+917842295449"),
+        ("inspector.dgms@dgms.gov.in", "Er. K. Venkat Rao (DGMS South Central Zone)", "DGMS_INSPECTOR", ministry.id, "MOC", "+918919912916"),
         ("manager.gdk11a@scclmines.com", "N. Ramesh (Colliery Manager - GDK 11A)", "COLLIERY_MANAGER", rg1_area.id, "MOC.SCCL.RAMAGUNDAM_1.GDK_11A", "+919876543212"),
         ("manager.rgocp3@scclmines.com", "Ch. Srinivas (Colliery Manager - RG-OCP 3)", "COLLIERY_MANAGER", rg2_area.id, "MOC.SCCL.RAMAGUNDAM_2.RG_OCP3", "+919876543213"),
         ("manager.kocp@scclmines.com", "B. Venkateswarlu (Manager - KOCP Kothagudem)", "COLLIERY_MANAGER", kothagudem_area.id, "MOC.SCCL.KOTHAGUDEM.KOCP", "+919876543214"),

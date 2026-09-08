@@ -3,6 +3,7 @@ Statutory Alert Dispatch Service (SIH26024).
 Coordinates multi-recipient emergency alert notifications and automated SMS text messages
 to registered mobile numbers of Colliery Managers, DGMS Inspectors, and Ministry Officials.
 """
+import os
 import logging
 from typing import List, Dict, Any, Optional
 
@@ -11,10 +12,10 @@ from app.infrastructure.database.models import UserModel
 
 logger = logging.getLogger("coal_governance.alert_dispatch_service")
 
-# Statutory default mobile directory for critical fallback communication
+# Statutory official mobile directory for critical emergency communication
 ROLE_DEFAULT_PHONE_MAP = {
-    "MINISTRY_AUDITOR": "+919876543210",
-    "DGMS_INSPECTOR": "+919876543211",
+    "MINISTRY_AUDITOR": os.getenv("MINISTRY_PHONE_NUMBER", "+917842295449"),
+    "DGMS_INSPECTOR": os.getenv("INSPECTOR_PHONE_NUMBER", "+918919912916"),
     "COLLIERY_MANAGER": "+919876543212",
     "AREA_ADMIN": "+919876543213",
     "SHIFT_OVERMAN": "+919876543215",
@@ -31,23 +32,24 @@ class AlertDispatchService:
     async def resolve_recipient_phones(self, recipient_roles: List[str]) -> List[str]:
         """
         Resolves registered phone numbers from UserModel by role.
-        Falls back to statutory default numbers if no user record or phone is found.
+        Prioritizes statutory official directory for Ministry and Inspector.
         """
         phones: List[str] = []
         for role in recipient_roles:
             norm_role = role.strip().upper()
-            user_phone = None
-            try:
-                users = await UserModel.find(UserModel.role == norm_role).to_list()
-                for u in users:
-                    if u.phone_number and u.phone_number.strip():
-                        user_phone = u.phone_number.strip()
-                        break
-            except Exception as e:
-                logger.debug("Database user phone lookup skipped: %s", e)
+            user_phone = ROLE_DEFAULT_PHONE_MAP.get(norm_role)
+            if not user_phone:
+                try:
+                    users = await UserModel.find(UserModel.role == norm_role).to_list()
+                    for u in users:
+                        if u.phone_number and u.phone_number.strip():
+                            user_phone = u.phone_number.strip()
+                            break
+                except Exception as e:
+                    logger.debug("Database user phone lookup skipped: %s", e)
 
             if not user_phone:
-                user_phone = ROLE_DEFAULT_PHONE_MAP.get(norm_role, "+919876543212")
+                user_phone = "+919876543212"
 
             if user_phone and user_phone not in phones:
                 phones.append(user_phone)
