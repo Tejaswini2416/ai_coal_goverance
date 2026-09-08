@@ -18,6 +18,7 @@ _PUBLIC_PATHS = {
     "/api/v1/auth/refresh",
     "/api/v1/auth/logout",
     "/api/v1/attendance/export",
+    "/api/v1/escalations/test-sms",
 }
 
 

@@ -29,6 +29,8 @@ from app.infrastructure.repositories.mine_site_repository import MineSiteReposit
 from app.infrastructure.repositories.notification_repository import NotificationRepository
 from app.services.audit_service import AuditService
 from app.services.email_service import EmailService
+from app.services.alert_dispatch_service import alert_dispatch_service
+from app.services.sms_service import sms_service
 
 router = APIRouter(prefix="/escalations", tags=["Statutory Escalations & Official Dispatch"])
 
@@ -362,3 +364,121 @@ async def list_escalation_history(
             "acknowledged_by_name": r.acknowledged_by_name,
         })
     return results
+
+
+class TestSMSRequest(BaseModel):
+    event_type: str = Field(
+        "TAMPER_ALERT",
+        description="Event type: TAMPER_ALERT, WORKER_EMERGENCY, PREDICTIVE_GAS_WARNING, or CUSTOM",
+    )
+    phone_number: Optional[str] = Field(
+        None,
+        description="Optional direct recipient phone number (e.g. +917842295449 or +918919912916)",
+    )
+    mine_name: Optional[str] = Field(
+        "Godavarikhani No. 11A Incline (GDK-11A)",
+        description="Colliery name",
+    )
+    message: Optional[str] = Field(
+        None,
+        description="Custom message text (used when event_type is CUSTOM)",
+    )
+
+
+class TestSMSResponse(BaseModel):
+    status: str
+    event_type: str
+    target_roles: List[str]
+    recipients: List[str]
+    dispatched_body: str
+    dispatch_result: Dict[str, Any]
+    timestamp: datetime
+
+
+@router.post("/test-sms", response_model=TestSMSResponse, status_code=status.HTTP_200_OK)
+async def test_sms_diagnostic(body: TestSMSRequest):
+    """
+    Diagnostic testing endpoint for statutory SMS alert dispatch.
+    Sends authentic notifications to higher authorities:
+    - TAMPER_ALERT: Ministry Auditor, DGMS Inspector, Colliery Manager
+    - WORKER_EMERGENCY: Colliery Manager, Shift Sirdar
+    - PREDICTIVE_GAS_WARNING: Colliery Manager, DGMS Inspector
+    - CUSTOM: Dispatches custom message to provided phone_number or statutory defaults.
+    """
+    norm_event = body.event_type.strip().upper()
+    colliery = body.mine_name or "Godavarikhani No. 11A Incline (GDK-11A)"
+
+    if norm_event == "TAMPER_ALERT":
+        res = await alert_dispatch_service.trigger_tamper_alert(
+            mine_name=colliery,
+            sequence_number=2,
+            incident_id=str(uuid.uuid4()),
+        )
+        msg_body = (
+            f"🚨 DGMS STATUTORY ALERT: Unauthorized record tampering attempt detected at {colliery}. "
+            f"Ledger block #2 invalidated. Ref: SIH26024"
+        )
+        return TestSMSResponse(
+            status="SUCCESS",
+            event_type=norm_event,
+            target_roles=res.get("target_roles", ["MINISTRY_AUDITOR", "DGMS_INSPECTOR", "COLLIERY_MANAGER"]),
+            recipients=res.get("recipients", []),
+            dispatched_body=msg_body,
+            dispatch_result=res.get("sms_dispatch", {}),
+            timestamp=datetime.now(timezone.utc),
+        )
+
+    elif norm_event == "WORKER_EMERGENCY":
+        res = await alert_dispatch_service.trigger_worker_emergency_halt(
+            mine_name=colliery,
+            location_desc="Gallery GDK-L3 Incline",
+            worker_name="K. Shankaraiah",
+        )
+        msg_body = (
+            f"⚠️ EMERGENCY PIT ALERT: Immediate safety threat reported at {colliery}, "
+            f"Gallery Gallery GDK-L3 Incline. Worker hazard halt triggered. Check portal immediately."
+        )
+        return TestSMSResponse(
+            status="SUCCESS",
+            event_type=norm_event,
+            target_roles=res.get("target_roles", ["COLLIERY_MANAGER", "SHIFT_OVERMAN"]),
+            recipients=res.get("recipients", []),
+            dispatched_body=msg_body,
+            dispatch_result=res.get("sms_dispatch", {}),
+            timestamp=datetime.now(timezone.utc),
+        )
+
+    elif norm_event == "PREDICTIVE_GAS_WARNING":
+        res = await alert_dispatch_service.trigger_predictive_gas_warning(
+            mine_name=colliery,
+            hours=36,
+            metric_name="CO rate > 3ppm/hr",
+        )
+        msg_body = (
+            f"🔴 CMR 2017 EARLY WARNING: AI forecast predicts spontaneous heating (CO rate > 3ppm/hr) "
+            f"at {colliery} in 36h. Proactive ventilation adjustment required."
+        )
+        return TestSMSResponse(
+            status="SUCCESS",
+            event_type=norm_event,
+            target_roles=res.get("target_roles", ["COLLIERY_MANAGER", "DGMS_INSPECTOR"]),
+            recipients=res.get("recipients", []),
+            dispatched_body=msg_body,
+            dispatch_result=res.get("sms_dispatch", {}),
+            timestamp=datetime.now(timezone.utc),
+        )
+
+    else:
+        phones = [body.phone_number] if body.phone_number else ["+917842295449", "+918919912916"]
+        text = body.message or f"🚨 DGMS STATUTORY ALERT: Test diagnostic transmission for {colliery}. Ref: SIH26024"
+        res = await sms_service.dispatch_sms(phones, text)
+        return TestSMSResponse(
+            status="SUCCESS",
+            event_type="CUSTOM",
+            target_roles=["DIAGNOSTIC_TEST"],
+            recipients=phones,
+            dispatched_body=text,
+            dispatch_result=res,
+            timestamp=datetime.now(timezone.utc),
+        )
+

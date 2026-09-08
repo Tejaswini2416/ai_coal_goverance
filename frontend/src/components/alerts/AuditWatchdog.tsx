@@ -2,11 +2,11 @@
 
 import React from "react";
 import { useAuditVerify } from "@/lib/api/useAuditVerify";
-import { AuditTamperAlertModal } from "./AuditTamperAlertModal";
+import { EmergencyAlertModal } from "./EmergencyAlertModal";
 
 export function AuditWatchdog() {
   // Initiates 15s cryptographic verification polling
   useAuditVerify();
 
-  return <AuditTamperAlertModal />;
+  return <EmergencyAlertModal />;
 }

@@ -11,6 +11,7 @@ export interface AuditIntegrityResult {
   expected_hash?: string | null;
   calculated_hash?: string | null;
   tampered_at?: string | null;
+  altered_field?: string | null;
   total_entries_verified: number;
   message: string;
 }

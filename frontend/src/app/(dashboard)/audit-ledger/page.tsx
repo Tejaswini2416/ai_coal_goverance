@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { ChainVerifyBanner } from "@/components/audit/chain-verify-banner";
 import { LedgerTable } from "@/components/audit/ledger-table";
-import { fetchAuditLedger, verifyAuditChain } from "@/lib/api/audit";
+import { fetchAuditLedger, verifyAuditChain, simulateDatabaseTamper } from "@/lib/api/audit";
 import { useAuthStore } from "@/lib/store/auth-store";
 import { useAuditAlertStore } from "@/lib/store/audit-alert-store";
 import { AuditLedgerEntry, VerifyResult } from "@/lib/types/domain";
@@ -23,12 +23,16 @@ import {
   Eye,
   ChevronRight,
   Code2,
+  AlertTriangle,
+  Radio,
 } from "lucide-react";
 
 export default function AuditLedgerPage() {
   const { activeMineSiteId, activeMineName } = useAuthStore();
+  const setTamperAlert = useAuditAlertStore((s) => s.setTamperAlert);
   const [entries, setEntries] = useState<AuditLedgerEntry[]>([]);
   const [selectedBlock, setSelectedBlock] = useState<AuditLedgerEntry | null>(null);
+  const [isSimulating, setIsSimulating] = useState(false);
 
   const loadEntries = async () => {
     try {
@@ -96,6 +100,35 @@ export default function AuditLedgerPage() {
     }
   };
 
+  const handleSimulateTamper = async () => {
+    setIsSimulating(true);
+    try {
+      const res = await simulateDatabaseTamper({
+        mine_site_id: activeMineSiteId || "11111111-1111-4111-a111-111111111111",
+        sequence_number: 2,
+        tampered_field: "ch4_percentage",
+        new_value: "0.02%",
+      });
+
+      setTamperAlert({
+        is_valid: false,
+        tampered_record_id: res?.tampered_record_id || "insp-form-iv-01",
+        sequence_number: res?.sequence_number || 2,
+        mine_site_id: activeMineSiteId || "11111111-1111-4111-a111-111111111111",
+        mine_name: activeMineName || "Godavarikhani No. 11A Incline (GDK-11A)",
+        expected_hash: "c2e8a7199c0dfb6c6b3e71d4a89645719918fb5974e626e2e58410294e1fb59a",
+        calculated_hash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        altered_field: "ch4_percentage (Falsified from 0.82% to 0.02%)",
+        total_entries_verified: entries.length || 4,
+        message: "Direct unauthorized database modification detected! Hash divergence at Block #2.",
+      });
+    } catch (err) {
+      console.warn("Tamper simulation error:", err);
+    } finally {
+      setIsSimulating(false);
+    }
+  };
+
   useEffect(() => {
     loadEntries();
   }, [activeMineSiteId]);
@@ -115,6 +148,19 @@ export default function AuditLedgerPage() {
             Cryptographic provenance &amp; immutable SHA-256 forward-linked chain for{" "}
             <strong className="text-emerald-300">{activeMineName}</strong>.
           </p>
+        </div>
+
+        {/* Live Attack Demonstration Trigger */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleSimulateTamper}
+            disabled={isSimulating}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-bold text-xs shadow-lg shadow-rose-950 transition-all active:scale-95 border border-rose-500/50"
+            title="Inject direct unauthorized mutation to verify audible emergency siren and DGMS dispatch"
+          >
+            <AlertTriangle className={`w-4 h-4 ${isSimulating ? "animate-spin" : "animate-bounce"}`} />
+            <span>{isSimulating ? "Injecting Attack..." : "🚨 Simulate Database Tampering Attack"}</span>
+          </button>
         </div>
       </div>
 

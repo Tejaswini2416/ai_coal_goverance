@@ -76,3 +76,42 @@ async def test_alert_dispatch_predictive_gas_warning():
     assert "DGMS_INSPECTOR" in res["target_roles"]
     assert res["sms_dispatch"]["status"] == "MOCKED_SUCCESS"
     assert "36h" in res["sms_dispatch"]["message_body"]
+
+
+@pytest.mark.asyncio
+async def test_escalation_test_sms_api_endpoint():
+    """Verify POST /api/v1/escalations/test-sms diagnostic testing endpoint."""
+    from httpx import AsyncClient, ASGITransport
+    from app.main import app
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        # 1. Test TAMPER_ALERT
+        res = await client.post(
+            "/api/v1/escalations/test-sms",
+            json={
+                "event_type": "TAMPER_ALERT",
+                "mine_name": "Godavarikhani No. 11A Incline",
+            },
+        )
+        assert res.status_code == 200
+        data = res.json()
+        assert data["status"] == "SUCCESS"
+        assert data["event_type"] == "TAMPER_ALERT"
+        assert "+917842295449" in data["recipients"]
+        assert "+918919912916" in data["recipients"]
+
+        # 2. Test WORKER_EMERGENCY
+        res2 = await client.post(
+            "/api/v1/escalations/test-sms",
+            json={
+                "event_type": "WORKER_EMERGENCY",
+                "mine_name": "Kasipet Underground Mine",
+            },
+        )
+        assert res2.status_code == 200
+        data2 = res2.json()
+        assert data2["status"] == "SUCCESS"
+        assert data2["event_type"] == "WORKER_EMERGENCY"
+        assert "COLLIERY_MANAGER" in data2["target_roles"]
+
