@@ -126,6 +126,20 @@ async def report_worker_issue(
     )
     await notif_repo.create(notif)
 
+    # 3. Trigger statutory emergency SMS text message alert to Manager and Overman
+    if is_emergency:
+        try:
+            from app.services.alert_dispatch_service import alert_dispatch_service
+            site = await MineSiteModel.get(mine_site_uuid)
+            site_name = site.name if site else "Godavarikhani No. 11A Incline (SCCL)"
+            await alert_dispatch_service.trigger_worker_emergency_halt(
+                mine_name=site_name,
+                location_desc=body.location_description,
+                worker_name=user_name,
+            )
+        except Exception as e:
+            pass
+
     return WorkerIssueOut(
         id=notif.id,
         mine_site_id=mine_site_uuid,

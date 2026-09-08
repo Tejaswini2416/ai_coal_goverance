@@ -29,21 +29,20 @@ export function OfflineStatusBar() {
         {!isOnline ? (
           <WifiOff className="w-4 h-4 text-amber-400 shrink-0 animate-pulse" />
         ) : (
-          <RefreshCw className={`w-4 h-4 text-blue-400 shrink-0 ${isSyncing ? "animate-spin" : ""}`} />
+          <RefreshCw className={`w-4 h-4 text-emerald-400 shrink-0 ${isSyncing ? "animate-spin" : ""}`} />
         )}
         <div>
           {!isOnline ? (
             <span>
-              <strong>📶 OFFLINE MODE:</strong> Operating on local pit cache. All actions will sync automatically upon reconnection.
+              <strong>📶 OFFLINE MODE:</strong> Operating on local pit cache. {pendingCount} action{pendingCount === 1 ? "" : "s"} pending sync.
+            </span>
+          ) : isSyncing ? (
+            <span>
+              <strong>🔄 SYNCING:</strong> Reconciling offline records with SCCL edge server...
             </span>
           ) : (
             <span>
-              <strong>RECONNECTED:</strong> Online connection restored. Background reconciler is active.
-            </span>
-          )}
-          {pendingCount > 0 && (
-            <span className="ml-2 font-bold text-amber-400 bg-amber-500/20 px-2 py-0.5 rounded-full">
-              {pendingCount} Local Mutation{pendingCount > 1 ? "s" : ""} Queued
+              <strong>RECONNECTED:</strong> Online connection restored. Local cache synchronized with SCCL edge server.
             </span>
           )}
         </div>

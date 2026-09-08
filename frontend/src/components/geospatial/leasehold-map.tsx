@@ -97,7 +97,7 @@ interface LeaseholdMapProps {
 function MapRecenter({ center }: { center: [number, number] }) {
   const map = useMap();
   useEffect(() => {
-    map.setView(center, map.getZoom(), { animate: true });
+    map.flyTo(center, 14, { duration: 1.5 });
   }, [center, map]);
   return null;
 }

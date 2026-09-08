@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useTenantStore } from "@/lib/store/tenant-store";
 import {
   Truck,
   TrendingUp,
@@ -15,7 +16,20 @@ import {
 } from "lucide-react";
 
 export default function ContractorProductionPage() {
+  const { selectedMine } = useTenantStore();
   const [selectedColliery, setSelectedColliery] = useState<"ALL" | "RG_OCP3" | "KOCP">("ALL");
+
+  useEffect(() => {
+    if (selectedMine) {
+      if (selectedMine.name.includes("RG-OCP") || selectedMine.id.includes("2222")) {
+        setSelectedColliery("RG_OCP3");
+      } else if (selectedMine.name.includes("KOCP") || selectedMine.id.includes("3333")) {
+        setSelectedColliery("KOCP");
+      } else {
+        setSelectedColliery("ALL");
+      }
+    }
+  }, [selectedMine]);
 
   const productionData = {
     today_total_tonnage: 9420,
@@ -181,21 +195,28 @@ export default function ContractorProductionPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
-              {dispatchTrips.map((d) => (
-                <tr key={d.id} className="hover:bg-slate-950/40 transition-colors">
-                  <td className="py-3 font-bold text-purple-300">{d.id}</td>
-                  <td className="py-3 text-slate-300">{d.colliery}</td>
-                  <td className="py-3 font-bold text-slate-100">{d.vehicle}</td>
-                  <td className="py-3 text-slate-400">{d.operator}</td>
-                  <td className="py-3 text-emerald-400 font-bold">{d.net_weight_t} Tonnes</td>
-                  <td className="py-3 text-slate-300">{d.destination}</td>
-                  <td className="py-3">
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                      {d.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
+              {dispatchTrips
+                .filter((d) => {
+                  if (selectedColliery === "ALL") return true;
+                  if (selectedColliery === "RG_OCP3") return d.colliery.includes("RG-OCP");
+                  if (selectedColliery === "KOCP") return d.colliery.includes("KOCP");
+                  return true;
+                })
+                .map((d) => (
+                  <tr key={d.id} className="hover:bg-slate-950/40 transition-colors">
+                    <td className="py-3 font-bold text-purple-300">{d.id}</td>
+                    <td className="py-3 text-slate-300">{d.colliery}</td>
+                    <td className="py-3 font-bold text-slate-100">{d.vehicle}</td>
+                    <td className="py-3 text-slate-400">{d.operator}</td>
+                    <td className="py-3 text-emerald-400 font-bold">{d.net_weight_t} Tonnes</td>
+                    <td className="py-3 text-slate-300">{d.destination}</td>
+                    <td className="py-3">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        {d.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
             </tbody>
           </table>
         </div>

@@ -331,6 +331,18 @@ class AuditService:
                 # Log if in-memory without insert
                 pass
 
+        # 4. Trigger statutory emergency SMS text message alerts to Ministry, Inspector & Manager
+        sms_dispatch = None
+        try:
+            from app.services.alert_dispatch_service import alert_dispatch_service
+            sms_dispatch = await alert_dispatch_service.trigger_tamper_alert(
+                mine_name=colliery_name,
+                sequence_number=audit_entry.sequence_number,
+                incident_id=str(incident_id),
+            )
+        except Exception as e:
+            pass
+
         return {
             "status": "UNAUTHORIZED_MODIFICATION_ATTEMPT",
             "incident_id": str(incident_id),
@@ -339,6 +351,7 @@ class AuditService:
             "forensic_payload": tamper_payload,
             "notifications_dispatched_count": len(notifications_dispatched),
             "target_roles": target_roles,
+            "sms_dispatch": sms_dispatch,
             "message": (
                 f"UNAUTHORIZED_MODIFICATION_ATTEMPT: Mutation was intercepted and permanently recorded "
                 f"in audit block #{audit_entry.sequence_number}. Regulatory authorities notified."

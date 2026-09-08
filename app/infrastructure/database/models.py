@@ -43,6 +43,7 @@ class UserModel(Document):
     email: str
     full_name: str
     role: str
+    phone_number: Optional[str] = None
     hashed_password: str
     is_active: bool = True
     last_login_at: Optional[datetime] = None

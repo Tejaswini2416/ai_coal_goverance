@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "@/lib/store/auth-store";
+import { useTenantStore } from "@/lib/store/tenant-store";
 import { fetchRiskAnalysis, RiskAnalysisData } from "@/lib/api/risk";
 import { downloadAnalyticsExecutiveReportPdf } from "@/lib/api/reports";
 import {
@@ -44,11 +45,14 @@ import {
 
 export default function RiskAnalyticsPage() {
   const { activeMineSiteId, activeMineName } = useAuthStore();
+  const { selectedMineId, selectedMine } = useTenantStore();
+  const effectiveMineId = selectedMineId || activeMineSiteId;
+  const effectiveMineName = selectedMine?.name || activeMineName || "Godavarikhani No. 11A Incline (SCCL)";
   const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   const { data, isLoading, isError, refetch, isFetching } = useQuery<RiskAnalysisData>({
-    queryKey: ["risk-analysis-current", activeMineSiteId],
-    queryFn: () => fetchRiskAnalysis(activeMineSiteId),
+    queryKey: ["risk-analysis-current", effectiveMineId],
+    queryFn: () => fetchRiskAnalysis(effectiveMineId),
     refetchInterval: 30000,
   });
 
@@ -56,8 +60,8 @@ export default function RiskAnalyticsPage() {
     setDownloadingPdf(true);
     try {
       await downloadAnalyticsExecutiveReportPdf(
-        data?.mine_name || activeMineName || "Godavarikhani No. 11A Incline (SCCL)",
-        activeMineSiteId
+        data?.mine_name || effectiveMineName,
+        effectiveMineId
       );
     } catch (err) {
       console.error("Failed to generate PDF:", err);
@@ -148,7 +152,7 @@ export default function RiskAnalyticsPage() {
           </h1>
           <p className="text-xs text-slate-400 mt-1">
             Explainable multi-pillar risk model &amp; 72-hour telemetry forecast for{" "}
-            <strong className="text-emerald-300">{data?.mine_name || activeMineName}</strong>.
+            <strong className="text-emerald-300">{data?.mine_name || effectiveMineName}</strong>.
           </p>
         </div>
 

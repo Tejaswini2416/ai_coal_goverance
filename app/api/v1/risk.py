@@ -218,6 +218,18 @@ async def get_current_risk_analysis(
         if "ALERT" in w or "TRIPWIRE" in w:
             all_triggers.append(w)
 
+    # Trigger statutory predictive early warning SMS to Colliery Manager and DGMS Inspector
+    if any("CO rate" in w or "spontaneous" in w.lower() or "CH4" in w for w in forecast_result.get("forecast_warnings", [])):
+        try:
+            from app.services.alert_dispatch_service import alert_dispatch_service
+            await alert_dispatch_service.trigger_predictive_gas_warning(
+                mine_name=mine_name,
+                hours=36,
+                metric_name="CO rate > 3ppm/hr",
+            )
+        except Exception:
+            pass
+
     return RiskAnalysisResponse(
         mine_site_id=str(mine_uuid),
         mine_name=mine_name,
