@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "coal-mines-governance"
+version = "1.0.0"
+description = "AI-Based Smart Governance and Compliance Monitoring System for Coal Mines (SIH26024)"
+authors = [{ name = "Ministry of Coal — SIH Team", email = "sih26024@coal.gov.in" }]
+requires-python = ">=3.11"
+readme = "README.md"
+license = { text = "Proprietary" }
+
+[tool.pytest.ini_options]
+asyncio_mode        = "auto"
+testpaths           = ["tests"]
+python_files        = ["test_*.py"]
+python_functions    = ["test_*"]
+addopts             = "-v --tb=short"
+filterwarnings      = ["ignore::DeprecationWarning"]
+
+[tool.coverage.run]
+source  = ["app"]
+omit    = ["*/migrations/*", "*/tests/*", "*/__init__.py"]
+
+[tool.coverage.report]
+show_missing  = true
+skip_covered  = false
+fail_under    = 70
+
+[tool.ruff]
+line-length    = 100
+target-version = "py311"
+select         = ["E", "F", "I", "UP", "B", "SIM"]
+ignore         = ["E501"]
