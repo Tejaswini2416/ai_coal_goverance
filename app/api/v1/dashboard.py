@@ -28,6 +28,7 @@ from app.infrastructure.database.models import (
     NotificationModel,
     StatutoryRuleModel,
     AuditLedgerModel,
+    WorkerLeaveModel,
 )
 
 router = APIRouter(tags=["Dashboard"])
@@ -190,7 +191,7 @@ async def get_dashboard_summary(
                     "risk_score": 18,
                     "is_geofence_breached": False,
                     "capa_status": "VERIFIED",
-                    "form_iv_available": true if 'true' in locals() else True,
+                    "form_iv_available": "true" if 'true' in locals() else True,
                 },
                 {
                     "id": "insp-02",
@@ -273,6 +274,116 @@ async def get_dashboard_summary(
                 "date": str(i.inspection_date.strftime("%b %d") if hasattr(i.inspection_date, "strftime") else i.inspection_date),
             })
 
+        # Worker Statutory Leaves (Mines Rules 1955 Chapter VII)
+        leave_records = await WorkerLeaveModel.find().sort("-created_at").to_list(15)
+        worker_leaves = []
+        for l in leave_records:
+            worker_leaves.append({
+                "id": str(l.id),
+                "worker_id": l.worker_id,
+                "worker_name": l.worker_name,
+                "mine_site_id": str(l.mine_site_id),
+                "leave_type": l.leave_type,
+                "start_date": str(l.start_date),
+                "end_date": str(l.end_date),
+                "total_days": l.total_days,
+                "reason": l.reason,
+                "relief_worker_id": l.relief_worker_id,
+                "relief_worker_name": l.relief_worker_name,
+                "status": l.status,
+                "reviewed_by": l.reviewed_by,
+                "reviewed_at": str(l.reviewed_at) if l.reviewed_at else None,
+                "review_notes": l.review_notes,
+                "created_at": str(l.created_at.strftime("%Y-%m-%d %H:%M") if hasattr(l.created_at, "strftime") else l.created_at),
+            })
+        if not worker_leaves:
+            worker_leaves = [
+                {
+                    "id": "leave-seed-01",
+                    "worker_id": "W-104",
+                    "worker_name": "Rajesh Kumar Mandal",
+                    "mine_site_id": mine_id_str,
+                    "leave_type": "EARNED_STATUTORY",
+                    "start_date": "2026-09-12",
+                    "end_date": "2026-09-14",
+                    "total_days": 3,
+                    "reason": "Annual statutory leave entitlement under Mines Rules 1955 Chapter VII.",
+                    "relief_worker_id": "W-108",
+                    "relief_worker_name": "K. Shankaraiah (Mining Sirdar)",
+                    "status": "APPROVED",
+                    "reviewed_by": "Colliery Manager (Er. Ramesh Rao)",
+                    "reviewed_at": "2026-09-10 14:30",
+                    "review_notes": "Shift relief allocated to Sirdar Shankaraiah.",
+                    "created_at": "2026-09-10 11:15",
+                },
+                {
+                    "id": "leave-seed-02",
+                    "worker_id": "W-210",
+                    "worker_name": "Amitabh Soren",
+                    "mine_site_id": mine_id_str,
+                    "leave_type": "CASUAL",
+                    "start_date": "2026-09-28",
+                    "end_date": "2026-09-29",
+                    "total_days": 2,
+                    "reason": "Family medical appointment in Hyderabad.",
+                    "relief_worker_id": "W-112",
+                    "relief_worker_name": "G. Venkatesh",
+                    "status": "SUBMITTED",
+                    "reviewed_by": None,
+                    "reviewed_at": None,
+                    "review_notes": None,
+                    "created_at": "2026-09-25 08:45",
+                },
+                {
+                    "id": "leave-seed-03",
+                    "worker_id": "W-405",
+                    "worker_name": "Dilip Hembram",
+                    "mine_site_id": mine_id_str,
+                    "leave_type": "SICK_MEDICAL",
+                    "start_date": "2026-09-26",
+                    "end_date": "2026-09-27",
+                    "total_days": 2,
+                    "reason": "Acute respiratory dust irritation; advised rest by Colliery Dispensary.",
+                    "relief_worker_id": "W-318",
+                    "relief_worker_name": "Vikram Chauhan",
+                    "status": "SUBMITTED",
+                    "reviewed_by": None,
+                    "reviewed_at": None,
+                    "review_notes": None,
+                    "created_at": "2026-09-26 06:30",
+                },
+            ]
+
+        # Dedicated Emergency Pit Alerts & Critical Worker Stop Grievances
+        emergency_alerts = [
+            {
+                "id": "pit-stop-01",
+                "title": "EMERGENCY PIT STOP: Strata Fracturing Detected",
+                "category": "ROOF_SUPPORT",
+                "location": "Panel 7 Working Face Junction 2",
+                "message": "Loose shale spalling detected on left rib; SSR roof bolt anchor plate requires immediate retightening before coal cutting resumes.",
+                "reported_by": "Rajesh Kumar Mandal (Mining Overman)",
+                "severity": "CRITICAL",
+                "urgency": "EMERGENCY_STOP",
+                "status": "PENDING_INVESTIGATION",
+                "is_emergency_stop": True,
+                "created_at": "09:45 AM",
+            },
+            {
+                "id": "pit-stop-02",
+                "title": "URGENT PIT ALERT: Methane Influx Incline Heading",
+                "category": "VENTILATION_GAS",
+                "location": "Level 3 Gallery 4 (380m Depth near Return Airway)",
+                "message": "Methane sensor flashing intermittent warning; airflow velocity dropped below 0.8 m/s during shift.",
+                "reported_by": "K. Shankaraiah (Mining Sirdar)",
+                "severity": "CRITICAL",
+                "urgency": "EMERGENCY_STOP",
+                "status": "INVESTIGATING",
+                "is_emergency_stop": True,
+                "created_at": "10:15 AM",
+            },
+        ]
+
         metrics = {
             "safety_risk_score": risk_score,
             "risk_level": "LOW",
@@ -322,7 +433,9 @@ async def get_dashboard_summary(
                 {"id": "w2", "worker_id": "W-210", "worker_name": "Amitabh Soren", "zone_type": "UNDERGROUND", "station_id": "LEVEL3-VENT-EAST", "shift": "MORNING", "check_in_time": "06:02", "gas_level_ppm": 14.2, "overtime_warning": False},
                 {"id": "w3", "worker_id": "W-318", "worker_name": "Vikram Chauhan", "zone_type": "SURFACE", "station_id": "HAUL-PIT-A", "shift": "MORNING", "check_in_time": "05:45", "gas_level_ppm": 2.1, "overtime_warning": True},
                 {"id": "w4", "worker_id": "W-405", "worker_name": "Dilip Hembram", "zone_type": "UNDERGROUND", "station_id": "DRIFT-NORTH-2", "shift": "MORNING", "check_in_time": "06:15", "gas_level_ppm": 6.8, "overtime_warning": False},
-            ]
+            ],
+            "worker_leaves": worker_leaves,
+            "emergency_alerts": emergency_alerts,
         }
 
     # ── PERSONA 3: WORKERS (FIELD_WORKER, MINING_SIRDAR) ────────────────────

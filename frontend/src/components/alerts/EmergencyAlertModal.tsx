@@ -21,6 +21,30 @@ import { useAuthStore } from "@/lib/store/auth-store";
 import { playEmergencySiren, stopEmergencySiren } from "@/lib/utils/audio";
 import { UserRole } from "@/lib/types/domain";
 
+/**
+ * Identifies whether a tamper event specifically targets Colliery Data Logs
+ * (shift atmospheric telemetry, worker muster logs, or opencast extraction logs).
+ */
+export function isDatalogTamper(data: any): boolean {
+  if (!data) return false;
+  const field = String(data.altered_field || "").toLowerCase();
+  const model = String(data.target_model || "").toLowerCase();
+  const entity = String(data.entity_type || "").toLowerCase();
+  const msg = String(data.message || "").toLowerCase();
+
+  const datalogKeywords = [
+    "gas", "telemetry", "ch4", "co_ppm", "o2", "velocity", "temp",
+    "muster", "attendance", "worker", "extraction", "tonnage", "dumper",
+    "explosive", "bench", "cast", "datalogs", "data_logs", "data-logs", "data logs",
+    "shift", "telemetrygasmodel", "workerattendancemodel", "minecastextractionmodel",
+    "reading", "sensor"
+  ];
+
+  return datalogKeywords.some((kw) =>
+    field.includes(kw) || model.includes(kw) || entity.includes(kw) || msg.includes(kw)
+  );
+}
+
 export function EmergencyAlertModal() {
   const router = useRouter();
   const { userRole } = useAuthStore();
@@ -29,16 +53,14 @@ export function EmergencyAlertModal() {
 
   const [isMuted, setIsMuted] = useState(false);
 
-  // Privileged statutory oversight roles: Ministry Auditor & DGMS Inspector (plus Colliery Manager)
-  const isPrivilegedOfficial =
-    !userRole ||
-    userRole === UserRole.MINISTRY_AUDITOR ||
-    userRole === UserRole.DGMS_INSPECTOR ||
-    userRole === UserRole.COLLIERY_MANAGER;
+  // Statutory constraint: ONLY the Minister (MINISTRY_AUDITOR) receives tamper alerts,
+  // and ONLY when datalogs are being tampered. Colliery Manager and other roles are completely excluded.
+  const isMinister = userRole === UserRole.MINISTRY_AUDITOR;
+  const isDatalog = isDatalogTamper(tamperData);
 
-  // Trigger dual-tone Web Audio siren upon modal open for statutory oversight officials
+  // Trigger dual-tone Web Audio siren upon modal open strictly for Minister on datalog tamper
   useEffect(() => {
-    if (isModalOpen && isTampered && isPrivilegedOfficial && !isMuted) {
+    if (isModalOpen && isTampered && isMinister && isDatalog && !isMuted) {
       playEmergencySiren(10000); // 10s statutory dual-tone siren
     } else {
       stopEmergencySiren();
@@ -47,9 +69,9 @@ export function EmergencyAlertModal() {
     return () => {
       stopEmergencySiren();
     };
-  }, [isModalOpen, isTampered, isPrivilegedOfficial, isMuted]);
+  }, [isModalOpen, isTampered, isMinister, isDatalog, isMuted]);
 
-  if (!isModalOpen || !isTampered || !tamperData) {
+  if (!isModalOpen || !isTampered || !tamperData || !isMinister || !isDatalog) {
     return null;
   }
 

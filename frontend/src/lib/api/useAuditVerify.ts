@@ -8,7 +8,8 @@ import { useAuditAlertStore, AuditIntegrityResult } from "../store/audit-alert-s
 
 export async function fetchAuditVerification(mineSiteId?: string | null): Promise<AuditIntegrityResult> {
   const token = useAuthStore.getState().accessToken;
-  const url = new URL(`${API_BASE_URL}/audit/verify`);
+  const role = useAuthStore.getState().userRole;
+  const url = new URL(`${API_BASE_URL}/audit-ledger/verify`);
   if (mineSiteId) {
     url.searchParams.append("mine_site_id", mineSiteId);
   }
@@ -17,6 +18,7 @@ export async function fetchAuditVerification(mineSiteId?: string | null): Promis
     const res = await fetch(url.toString(), {
       headers: {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(role ? { "X-Demo-Role": role } : {}),
       },
     });
 

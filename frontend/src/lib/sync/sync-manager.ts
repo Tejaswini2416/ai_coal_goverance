@@ -5,12 +5,15 @@ import { useSyncStore } from "../store/sync-store";
 import { useAuthStore } from "../store/auth-store";
 import { SyncStatus } from "../types/domain";
 import type { BatchSyncRequest, BatchSyncResponse, UploadUrlResponse } from "../types/api";
+import { invalidateMineQueries } from "../api/query-client";
 
 function getAuthHeaders(): HeadersInit {
   const token = useAuthStore.getState().accessToken;
+  const role = useAuthStore.getState().userRole;
   return {
     "Content-Type": "application/json",
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(role ? { "X-Demo-Role": role } : {}),
   };
 }
 
@@ -244,6 +247,9 @@ export async function flushOfflineSyncQueue(): Promise<{
 
     syncStore.setLastSyncedAt(new Date());
     await syncStore.refreshPendingCount();
+
+    // Invalidate React Query caches to immediately refresh UI dashboards with newly synced data
+    invalidateMineQueries();
 
     return { syncedCount, conflictsCount };
   } catch (error) {

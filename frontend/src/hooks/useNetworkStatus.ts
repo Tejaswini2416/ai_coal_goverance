@@ -55,11 +55,28 @@ export function useNetworkStatus() {
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
 
-    refreshPendingCount();
+    // Initial check on mount: If running online, immediately drain any queued offline records
+    refreshPendingCount().then(() => {
+      if (typeof navigator !== "undefined" && navigator.onLine) {
+        syncNow();
+      }
+    });
+
+    // Periodic auto-sync worker: Checks every 6 seconds and syncs offline data as soon as online
+    const autoSyncInterval = setInterval(async () => {
+      if (typeof navigator !== "undefined" && navigator.onLine) {
+        await refreshPendingCount();
+        const pending = useSyncStore.getState().pendingCount;
+        if (pending > 0 && !useSyncStore.getState().isSyncing) {
+          await syncNow();
+        }
+      }
+    }, 6000);
 
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
+      clearInterval(autoSyncInterval);
     };
   }, [syncNow, refreshPendingCount]);
 
